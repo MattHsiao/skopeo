@@ -24,7 +24,9 @@ type copyOptions struct {
 	destImage         *imageDestOptions
 	additionalTags    []string       // For docker-archive: destinations, in addition to the name:tag specified as destination, also add these
 	removeSignatures  bool           // Do not copy signatures from the source image
-	signByFingerprint string         // Sign the image using a GPG key with the specified fingerprint
+	//signByFingerprint string         // Sign the image using a GPG key with the specified fingerprint
+	signByKey         string          // Sign the image using a secret key
+    signByType        string          // Specify the key type of option 'signByKey'
 	format            optionalString // Force conversion of the image to a specified format
 	quiet             bool           // Suppress output information when copying images
 	all               bool           // Copy all of the images if the source is a list
@@ -63,7 +65,8 @@ See skopeo(1) section "IMAGE NAMES" for the expected format
 	flags.BoolVarP(&opts.quiet, "quiet", "q", false, "Suppress output information when copying images")
 	flags.BoolVarP(&opts.all, "all", "a", false, "Copy all images if SOURCE-IMAGE is a list")
 	flags.BoolVar(&opts.removeSignatures, "remove-signatures", false, "Do not copy signatures from SOURCE-IMAGE")
-	flags.StringVar(&opts.signByFingerprint, "sign-by", "", "Sign the image using a GPG key with the specified `FINGERPRINT`")
+	flags.StringVar(&opts.signByKey, "sign-by", "", "Sign the image using a secret key type specified in option --sign-keytype")
+	flags.StringVar(&opts.signByType, "sign-type", "", "Specify secret key type in option --sign-by (optional, default to GPG fingerprint if not specified)")
 	flags.VarP(newOptionalStringValue(&opts.format), "format", "f", `MANIFEST TYPE (oci, v2s1, or v2s2) to use when saving image to directory using the 'dir:' transport (default is manifest type of source)`)
 	flags.StringSliceVar(&opts.encryptionKeys, "encryption-key", []string{}, "*Experimental* key with the encryption protocol to use needed to encrypt the image (e.g. jwe:/path/to/key.pem)")
 	flags.IntSliceVar(&opts.encryptLayer, "encrypt-layer", []int{}, "*Experimental* the 0-indexed layer indices, with support for negative indexing (e.g. 0 is the first layer, -1 is the last layer)")
@@ -180,7 +183,8 @@ func (opts *copyOptions) run(args []string, stdout io.Writer) error {
 
 	_, err = copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
 		RemoveSignatures:      opts.removeSignatures,
-		SignBy:                opts.signByFingerprint,
+		SignBy:                opts.signByKey,
+        SignByType:            opts.signByType,
 		ReportWriter:          stdout,
 		SourceCtx:             sourceCtx,
 		DestinationCtx:        destinationCtx,
